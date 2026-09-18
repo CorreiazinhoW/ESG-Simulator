@@ -1,3 +1,1 @@
 # ESG-Simulator
-
-[Declaramos a utilização de Inteligência Artifical como meio de auxílio para o desenvolvimento desse artifício (codificação) do nosso site. Ademais, todos os dados e ideias, inclusive, da implementação total do sistema de atributos e simulação vieram de muito esforço dos nossos desenvolvedores para a criação de um site interativo e atraente para o PME do setor têxtil interessado. Vale ressaltar que, estamos lidando com um tema que diz muito sobre a transparência de uma empresa, logo, vamos seguir os princípios que nós mesmos apresentamos à terceiros.] Atenciosamente: Grupo 13.
