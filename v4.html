@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Trama — o jogo da moda responsável</title>
+<style>
+/* =========================================================================
+   TRAMA
+   Um simulador educativo de gestão de uma pequena marca de moda,
+   mostrando como práticas sustentáveis geram valor no longo prazo.
+   HTML + CSS + JS puros, um único arquivo, sem dependências externas.
+   ========================================================================= */
+
+:root{
+  --void:        #171310;
+  --void-2:      #1E1913;
+  --panel:       #2A2219;
+  --panel-line:  #3C3122;
+  --paper:       #F1E9D8;
+  --paper-edge:  #DDCBA6;
+  --ink:         #2B2318;
+  --ink-soft:    #6a5c46;
+  --thread:      #C1683A;
+  --thread-dim:  #8a4c2c;
+  --accept:      #4C8B5B;
+  --reject:      #B4523F;
+  --text:        #ECE3D2;
+  --text-dim:    #A69880;
+
+  --bar-90: #1B5E20;
+  --bar-70: #4CAF50;
+  --bar-50: #FFEB3B;
+  --bar-30: #FF9800;
+  --bar-0:  #F44336;
+
+  --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, "Times New Roman", serif;
+  --sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono:  "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+*{ box-sizing: border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 50% -10%, #2a2117 0%, var(--void) 55%),
+    var(--void);
+  color: var(--text);
+  font-family: var(--sans);
+  overflow:hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select:none;
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+.grid-veil{
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(193,104,58,0.05) 0 2px, transparent 2px 14px),
+    repeating-linear-gradient(-45deg, rgba(193,104,58,0.05) 0 2px, transparent 2px 14px);
+  opacity:0.5;
+}
+
+#app{ position:relative; z-index:1; height:100%; display:flex; flex-direction:column; }
+
+/* ---------------------------------------------------------------- HEADER */
+.topbar{ display:flex; align-items:center; justify-content:space-between; padding: 14px 20px 8px; flex: 0 0 auto; }
+.brand{ display:flex; align-items:baseline; gap:10px; }
+.brand-mark{ font-family: var(--serif); font-size: 20px; letter-spacing: 0.02em; color: var(--thread); }
+.brand-sub{ font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+.year-plaque{
+  font-family: var(--mono); background: var(--panel); border: 1px solid var(--panel-line);
+  border-radius: 3px; padding: 6px 14px; font-size: 13px; color: var(--thread); letter-spacing: 0.06em;
+}
+.topbar-actions{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.icon-btn{
+  background: var(--panel); border: 1px solid var(--panel-line); color: var(--text-dim);
+  border-radius: 3px; padding: 6px 10px; font-family: var(--mono); font-size: 11px; cursor:pointer;
+}
+.icon-btn:hover{ color: var(--text); border-color: var(--thread-dim); }
+.icon-btn:focus-visible, button:focus-visible, .card:focus-visible{ outline: 2px solid var(--thread); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- STAGE */
+.stage-wrap{ flex: 1 1 auto; display:flex; align-items:center; justify-content:center; position:relative; min-height:0; padding: 0 16px; }
+
+.character-tag{ position:absolute; top: 4px; left:50%; transform: translateX(-50%); text-align:center; z-index:2; pointer-events:none; }
+.character-tag .emoji{ font-size: 30px; display:block; }
+.character-tag .name{ font-family: var(--serif); font-size: 16px; color: var(--text); margin-top:2px; }
+.character-tag .role{ font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing:0.04em; }
+
+.card-stage{ position: relative; width: min(360px, 92vw); height: min(480px, 62vh); perspective: 900px; }
+
+.card{
+  position:absolute; inset:0; background: var(--paper); color: var(--ink);
+  border-radius: 10px; box-shadow: 0 18px 40px rgba(0,0,0,0.45), 0 2px 0 var(--paper-edge) inset;
+  padding: 68px 26px 26px; display:flex; flex-direction:column; cursor: grab;
+  touch-action: none; will-change: transform; transform-origin: center 120%;
+}
+.card:active{ cursor: grabbing; }
+.card.entering{ animation: cardIn 0.42s cubic-bezier(.2,.8,.2,1); }
+@keyframes cardIn{ from{ opacity:0; transform: translateY(26px) scale(0.96); } to{ opacity:1; transform: translateY(0) scale(1); } }
+
+.card .tab{
+  position:absolute; top:0; left: 22px; right: 22px; height: 46px; background: var(--ink);
+  border-radius: 0 0 8px 8px; color: var(--paper); display:flex; align-items:center; gap:10px;
+  padding: 0 14px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em;
+}
+.card .tab .tab-emoji{ font-size:18px; }
+.card .tab .tab-text b{ display:block; font-family: var(--serif); font-size:13px; letter-spacing:0; }
+
+.card .quote{ flex:1; display:flex; align-items:center; font-family: var(--serif); font-size: 18px; line-height: 1.45; color: var(--ink); }
+.card .quote::before{ content:"“"; color: var(--thread-dim); }
+.card .quote::after{ content:"”"; color: var(--thread-dim); }
+
+.card .rare-flag{
+  position:absolute; top:52px; right: 14px; font-family: var(--mono); font-size:9px; letter-spacing:0.08em;
+  color: var(--reject); border:1px solid var(--reject); padding: 2px 6px; border-radius: 2px; text-transform: uppercase;
+}
+.card .rare-flag.tone-news{ color: var(--thread-dim); border-color: var(--thread-dim); }
+.card .rare-flag.tone-good{ color: var(--accept); border-color: var(--accept); }
+.card .rare-flag.tone-report{ color: #7d6a4a; border-color:#7d6a4a; }
+
+/* relatório de coleção — layout de dados dentro do cartão */
+.report-grid{ font-family: var(--mono); font-size: 12.5px; line-height:1.9; color: var(--ink); }
+.report-grid .r-title{ font-family: var(--serif); font-size:16px; margin-bottom:8px; color: var(--ink); }
+.report-grid .r-row{ display:flex; justify-content:space-between; border-bottom: 1px dashed var(--paper-edge); padding: 2px 0; }
+.report-grid .r-row b{ color: var(--thread-dim); }
+
+.overlay-stamp{
+  position:absolute; top: 34%; font-family: var(--serif); font-weight: 700; font-size: 38px; letter-spacing: 0.08em;
+  padding: 6px 16px; border: 5px solid currentColor; border-radius: 6px; opacity: 0; transform: rotate(-14deg); pointer-events:none;
+}
+.overlay-stamp.accept{ left: 14px; color: var(--accept); transform: rotate(-14deg); }
+.overlay-stamp.reject{ right: 14px; color: var(--reject); transform: rotate(14deg); }
+
+.drag-hint{ position:absolute; bottom: -34px; left:0; right:0; text-align:center; font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.04em; }
+
+.choice-buttons{ position:absolute; bottom: -78px; left:0; right:0; display:flex; justify-content:center; gap: 16px; }
+.choice-btn{ font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; padding: 10px 18px; border-radius: 4px; border: 1px solid var(--panel-line); background: var(--panel); color: var(--text); cursor:pointer; }
+.choice-btn.reject{ color: var(--reject); border-color: rgba(180,82,63,0.4); }
+.choice-btn.accept{ color: var(--accept); border-color: rgba(76,139,91,0.4); }
+.choice-btn:hover{ filter: brightness(1.15); }
+
+/* --------------------------------------------------------------- DASH */
+.dashboard{ flex: 0 0 auto; display:flex; gap: 10px; padding: 30px 16px 14px; overflow-x:auto; }
+.gauge{ flex: 1 1 0; min-width: 92px; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 6px; padding: 8px 10px; }
+.gauge-head{ display:flex; align-items:center; justify-content:space-between; font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-bottom:6px; }
+.gauge-head .g-icon{ font-size: 13px; }
+.gauge-head .g-val{ color: var(--text); font-weight:600; }
+.gauge-track{ height: 8px; border-radius: 4px; background: #16110c; overflow:hidden; border: 1px solid var(--panel-line); }
+.gauge-fill{ height:100%; transition: width .5s ease, background-color .5s ease; }
+
+/* ------------------------------------------------------------- DRAWERS */
+.drawer-backdrop{ position:fixed; inset:0; background: rgba(10,7,4,0.6); z-index: 20; opacity:0; pointer-events:none; transition: opacity .25s ease; }
+.drawer-backdrop.open{ opacity:1; pointer-events:auto; }
+.drawer{
+  position:fixed; top:0; right:0; bottom:0; width: min(320px, 86vw); background: var(--void-2);
+  border-left: 1px solid var(--panel-line); z-index: 21; transform: translateX(100%); transition: transform .3s ease;
+  display:flex; flex-direction:column; padding: 20px;
+}
+.drawer.open{ transform: translateX(0); }
+.drawer h2{ font-family: var(--serif); font-size:18px; color: var(--thread); margin:0 0 14px; }
+.drawer-close{ align-self:flex-end; background:none; border:none; color: var(--text-dim); font-family: var(--mono); font-size:12px; cursor:pointer; margin-bottom:6px; }
+.drawer-list{ overflow-y:auto; flex:1; }
+.hist-item{ border-bottom: 1px solid var(--panel-line); padding: 10px 0; }
+.hist-item .h-year{ font-family: var(--mono); font-size:11px; color: var(--thread); }
+.hist-item .h-text{ font-size: 13px; color: var(--text); margin-top: 2px; }
+.ach-item{ display:flex; gap:10px; align-items:flex-start; padding: 10px 0; border-bottom: 1px solid var(--panel-line); opacity: 0.35; }
+.ach-item.unlocked{ opacity:1; }
+.ach-item .a-icon{ font-size:20px; }
+.ach-item .a-name{ font-family: var(--serif); font-size:14px; }
+.ach-item .a-desc{ font-family: var(--mono); font-size:10px; color: var(--text-dim); }
+.market-row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom: 1px solid var(--panel-line); }
+.market-row.me{ background: rgba(193,104,58,0.08); border-radius: 4px; padding-left:6px; }
+.market-row .m-rank{ font-family: var(--mono); font-size:11px; color: var(--text-dim); width:16px; }
+.market-row .m-name{ flex:1; font-size:13px; }
+.market-row .m-pct{ font-family: var(--mono); font-size:13px; color: var(--thread); }
+
+/* -------------------------------------------------------------- TOAST */
+#toast-host{ position:fixed; top: 16px; left:50%; transform: translateX(-50%); z-index: 30; display:flex; flex-direction:column; gap:8px; align-items:center; }
+.toast{
+  background: var(--panel); border: 1px solid var(--thread-dim); color: var(--text); font-family: var(--mono); font-size: 12px;
+  padding: 10px 16px; border-radius: 4px; box-shadow: 0 10px 24px rgba(0,0,0,0.4); animation: toastIn .3s ease, toastOut .3s ease 2.6s forwards;
+}
+@keyframes toastIn{ from{ opacity:0; transform: translateY(-10px);} to{opacity:1; transform:translateY(0);} }
+@keyframes toastOut{ to{ opacity:0; transform: translateY(-10px);} }
+
+/* --------------------------------------------------------- FULLSCREENS */
+.fullscreen{ position:fixed; inset:0; z-index: 40; display:flex; align-items:center; justify-content:center;
+  background: radial-gradient(circle at 50% 20%, #2a2117 0%, var(--void) 60%), var(--void); padding: 24px; text-align:center; overflow-y:auto; }
+.fullscreen.hidden{ display:none; }
+.panel-box{ max-width: 520px; width:100%; }
+.panel-box .kicker{ font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.1em; margin-bottom: 10px; }
+.panel-box h1{ font-family: var(--serif); font-size: 34px; color: var(--thread); margin: 0 0 14px; line-height:1.1; }
+.panel-box h1.negative{ color: var(--reject); }
+.panel-box h1.positive{ color: var(--accept); }
+.panel-box h1.supreme{ color: var(--thread); text-shadow: 0 0 24px rgba(193,104,58,0.5); }
+.panel-box p.lede{ font-size: 15px; line-height:1.6; color: var(--text); margin: 0 0 22px; }
+.stat-row{ display:flex; justify-content:center; gap: 22px; margin-bottom: 22px; flex-wrap:wrap; }
+.stat{ font-family: var(--mono); }
+.stat .s-val{ font-size: 20px; color: var(--thread); display:block; }
+.stat .s-label{ font-size: 10px; color: var(--text-dim); }
+.primary-btn{ font-family: var(--serif); font-size: 16px; background: var(--thread); color: #1c1108; border: none; padding: 12px 30px; border-radius: 5px; cursor:pointer; letter-spacing: 0.02em; }
+.primary-btn:hover{ filter: brightness(1.08); }
+.ghost-btn{ font-family: var(--mono); font-size: 12px; background:none; border: 1px solid var(--panel-line); color: var(--text-dim); padding: 10px 18px; border-radius: 5px; cursor:pointer; margin-left:10px; }
+.rules-list{ text-align:left; font-size:13px; line-height:1.7; color: var(--text-dim); margin: 0 0 24px; }
+.rules-list b{ color: var(--text); }
+
+.case-study{ text-align:left; background: var(--panel); border:1px solid var(--panel-line); border-radius:8px; padding:18px 20px; margin: 0 0 22px; }
+.case-study h3{ font-family: var(--serif); color: var(--thread); margin:0 0 10px; font-size:15px; }
+.case-study ul{ margin:0 0 14px; padding-left:18px; font-size:13px; line-height:1.7; color: var(--text); }
+.case-study .cs-final-ind{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; font-family: var(--mono); font-size:12px; }
+.case-study .cs-final-ind span{ background: var(--void-2); border:1px solid var(--panel-line); border-radius:4px; padding:4px 8px; }
+.case-study .cs-market{ font-size:13px; }
+.case-study .cs-market div{ display:flex; justify-content:space-between; border-bottom:1px dashed var(--panel-line); padding:4px 0; }
+
+@media (max-width: 420px){
+  .panel-box h1{ font-size: 28px; }
+  .card{ padding: 60px 20px 22px; }
+  .card .quote{ font-size: 16px; }
+  .stage-wrap{ padding-bottom: 10px; }
+  .dashboard{ padding-top: 40px; flex-wrap: wrap; }
+  .gauge{ min-width: 44%; }
+}
+</style>
+</head>
+<body>
+<div class="grid-veil"></div>
+<div id="toast-host"></div>
+
+<!-- ============================================================ START -->
+<div class="fullscreen" id="screen-start">
+  <div class="panel-box">
+    <div class="kicker">UM SIMULADOR DE GESTÃO SUSTENTÁVEL</div>
+    <h1>Trama</h1>
+    <p class="lede">Você acaba de assumir a gestão de uma pequena marca de moda. Cada ano, alguém bate à sua porta com uma decisão. Arraste o cartão para a direita para aceitar, para a esquerda para recusar. Toda escolha planta uma semente — e ela cresce, para o bem ou para o mal, anos depois.</p>
+    <ul class="rules-list">
+      <li><b>💰 Caixa · ❤️ Valor da Marca · 👥 Equipe · 🏭 Operação · 📈 Crescimento</b> — cinco indicadores, todos começam em 50.</li>
+      <li>Se qualquer indicador chegar a <b>zero</b>, sua gestão termina.</li>
+      <li>Investir em práticas responsáveis quase nunca compensa na hora — mas o retorno chega, e costuma ser maior que o custo.</li>
+      <li>Atalhos e economias de curto prazo também têm um preço. Ele só demora para chegar a fatura.</li>
+    </ul>
+    <button class="primary-btn" id="btn-start">Assumir a gestão</button>
+  </div>
+</div>
+
+<!-- ============================================================= GAME -->
+<div id="app" style="display:none;">
+  <div class="topbar">
+    <div class="brand">
+      <span class="brand-mark" id="brand-name">Trama</span>
+      <span class="brand-sub">gestão em curso</span>
+    </div>
+    <div class="year-plaque" id="year-plaque">ANO 1</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="btn-history">HISTÓRICO</button>
+      <button class="icon-btn" id="btn-market">MERCADO</button>
+      <button class="icon-btn" id="btn-achievements">CONQUISTAS</button>
+    </div>
+  </div>
+
+  <div class="stage-wrap">
+    <div class="character-tag" id="character-tag">
+      <span class="emoji" id="tag-emoji">🌱</span>
+      <span class="name" id="tag-name">Beatriz</span>
+      <span class="role" id="tag-role">Consultora de Sustentabilidade</span>
+    </div>
+
+    <div class="card-stage" id="card-stage">
+      <div class="drag-hint" id="drag-hint">arraste ⟵ recusar &nbsp;·&nbsp; aceitar ⟶</div>
+      <div class="choice-buttons">
+        <button class="choice-btn reject" id="btn-reject" aria-label="Recusar">✕ RECUSAR</button>
+        <button class="choice-btn accept" id="btn-accept" aria-label="Aceitar">ACEITAR ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard" id="dashboard"></div>
+</div>
+
+<!-- ============================================================= DRAWERS -->
+<div class="drawer-backdrop" id="drawer-backdrop"></div>
+<div class="drawer" id="drawer-history">
+  <button class="drawer-close" data-close-drawer>fechar ✕</button>
+  <h2>Últimas decisões</h2>
+  <div class="drawer-list" id="history-list"></div>
+</div>
+<div class="drawer" id="drawer-achievements">
+  <button class="drawer-close" data-close-drawer>fechar ✕</button>
+  <h2>Conquistas</h2>
+  <div class="drawer-list" id="achievements-list"></div>
+</div>
+<div class="drawer" id="drawer-market">
+  <button class="drawer-close" data-close-drawer>fechar ✕</button>
+  <h2>Participação de mercado</h2>
+  <div class="drawer-list" id="market-list"></div>
+</div>
+
+<!-- ============================================================== END -->
+<div class="fullscreen hidden" id="screen-end">
+  <div class="panel-box">
+    <div class="kicker">ESTUDO DE CASO — FIM DE GESTÃO</div>
+    <h1 id="end-title">Falência</h1>
+    <p class="lede" id="end-text">A empresa não resistiu.</p>
+
+    <div class="case-study">
+      <h3 id="cs-empresa">EMPRESA: —</h3>
+      <div class="cs-final-ind" id="cs-final-ind"></div>
+      <h3>Principais decisões</h3>
+      <ul id="cs-decisoes"><li>—</li></ul>
+      <h3>Principais consequências observadas</h3>
+      <ul id="cs-consequencias"><li>—</li></ul>
+      <h3>Participação de mercado</h3>
+      <div class="cs-market" id="cs-market"></div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><span class="s-val" id="end-years">0</span><span class="s-label">ANOS DE GESTÃO</span></div>
+      <div class="stat"><span class="s-val" id="end-decisions">0</span><span class="s-label">DECISÕES</span></div>
+      <div class="stat"><span class="s-val" id="end-ach">0</span><span class="s-label">CONQUISTAS</span></div>
+    </div>
+    <button class="primary-btn" id="btn-restart">Nova gestão</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================================
+   1. DADOS DO JOGO
+   ========================================================================= */
+
+var CHARACTERS = {
+  beatriz: { name:"Beatriz", role:"Consultora de Sustentabilidade", emoji:"🌱" },
+  marina:  { name:"Marina",  role:"Encarregada de Equipe",          emoji:"👥" },
+  carlos:  { name:"Carlos",  role:"Encarregado de Produção",        emoji:"🏭" },
+  otavio:  { name:"Otávio",  role:"Contador",                       emoji:"💰" },
+  lucia:   { name:"Lúcia",   role:"Consultora de Expansão",         emoji:"📈" },
+  fabio:   { name:"Fábio",   role:"Fornecedor Têxtil",              emoji:"🧵" },
+  sofia:   { name:"Sofia",   role:"Influenciadora Digital",         emoji:"✨" },
+  renata:  { name:"Renata",  role:"Jornalista de Moda",             emoji:"📰" }
+};
+
+var IND_KEYS = ["cai","mar","equ","ope","cre"];
+var IND_META = {
+  cai: { label:"Caixa",          icon:"💰" },
+  mar: { label:"Valor da Marca", icon:"❤️" },
+  equ: { label:"Equipe",         icon:"👥" },
+  ope: { label:"Operação",       icon:"🏭" },
+  cre: { label:"Crescimento",    icon:"📈" }
+};
+
+var COMPANY_NAMES = ["Aurora Moda","Textura Viva","Nó & Fio","Alma Têxtil","Retalho Fino","Bela Trama","Cerrado Moda","Flor de Linho","Urbe Moda","Costura Livre"];
+
+/* ---- as 30 decisões-semente: cada uma gera uma consequência de longo
+        prazo positiva (se aceita) ou negativa (se recusada), entre 2 e 15
+        anos depois. O jogador nunca é avisado disso. ------------------- */
+var SEED_CARDS = [
+  { id:"solar", char:"beatriz", text:"O telhado da fábrica recebe sol praticamente o dia todo. Instalar painéis solares custará caro, mas reduz nossa conta de energia nos próximos anos. Instalamos?",
+    accept:{ cai:-14, ltc:"solar" }, reject:{ cai:2, ltc:"semSolar" } },
+  { id:"retalhos", char:"beatriz", text:"Estamos descartando muito retalho de tecido todo mês. Podemos criar uma linha de produtos com esse material, mas vai tomar tempo da equipe de design.",
+    accept:{ cre:-2, ltc:"retalhos" }, reject:{ cai:2, ltc:"descarteRetalhos" } },
+  { id:"treino", char:"marina", text:"Posso organizar um treinamento técnico para a equipe de costura, melhorando a qualidade das peças. Vai custar algumas semanas de produção reduzida.",
+    accept:{ ope:-4, ltc:"treinamento" }, reject:{ ope:2, ltc:"semTreinamento" } },
+  { id:"ergonomia", char:"carlos", text:"As estações de trabalho da produção não têm o ajuste ergonômico ideal. Reformar as bancadas custa caro, mas reduz afastamentos.",
+    accept:{ cai:-10, ltc:"ergonomia" }, reject:{ cai:4, ltc:"semErgonomia" } },
+  { id:"embalagem", char:"beatriz", text:"Podemos trocar nossas embalagens plásticas por papel reciclado. O custo por peça sobe um pouco. Trocamos?",
+    accept:{ cai:-6, ltc:"embalagem" }, reject:{ cai:2, ltc:"embalagemPlastico" } },
+  { id:"certificacao", char:"fabio", text:"Posso buscar fornecedores certificados, com rastreabilidade completa da matéria-prima. Custa mais caro que os fornecedores atuais.",
+    accept:{ cai:-10, ltc:"certificacao" }, reject:{ cai:6, ltc:"semCertificacao" } },
+  { id:"residuos", char:"carlos", text:"Podemos implementar um sistema de gestão de resíduos têxteis, separando e destinando corretamente cada material. Exige investir em infraestrutura.",
+    accept:{ cai:-8, ltc:"residuos" }, reject:{ cai:3, ltc:"residuosMalGeridos" } },
+  { id:"transparencia", char:"beatriz", text:"Podemos publicar um relatório público mostrando toda a nossa cadeia produtiva. É trabalhoso e expõe eventuais falhas nossas.",
+    accept:{ cre:-2, ltc:"transparencia" }, reject:{ cre:2, ltc:"opacidadeCadeia" } },
+  { id:"manutencao", char:"carlos", text:"A manutenção preventiva das máquinas de costura está cara este mês. Podemos adiar um pouco sem grandes riscos aparentes. Adiamos?",
+    accept:{ cai:6, ltc:"manutencaoAdiada" }, reject:{ cai:-8, ltc:"manutencaoEmDia" } },
+  { id:"fornecedor", char:"fabio", text:"O Fornecedor A é bem mais barato, mas não sabemos exatamente de onde vem o algodão. O Fornecedor B é mais caro, mas com origem certificada. Vamos com o B?",
+    accept:{ cai:-8, ltc:"fornecedorB" }, reject:{ cai:8, ltc:"fornecedorA" } },
+  { id:"seguranca", char:"carlos", text:"Podemos investir em equipamentos de proteção e treinamento de segurança para a produção. Tem custo, mas reduz riscos de acidentes.",
+    accept:{ cai:-8, ltc:"segurancaOk" }, reject:{ cai:5, ltc:"segurancaIgnorada" } },
+  { id:"horasExtras", char:"marina", text:"A alta temporada está exigindo muitas horas extras da equipe. Contratamos temporários extras ou pressionamos a equipe atual para dar conta do prazo?",
+    accept:{ cai:-6, ltc:"contratouTemporarios" }, reject:{ cai:6, ltc:"excessoHorasExtras" } },
+  { id:"qualidade", char:"carlos", text:"Podemos reforçar o controle de qualidade antes do envio das peças. Isso atrasa um pouco a entrega. Reforçamos?",
+    accept:{ cre:-2, ltc:"qualidadeReforcada" }, reject:{ cre:2, ltc:"qualidadeRelaxada" } },
+  { id:"manterTreino", char:"marina", text:"Quero manter o orçamento de treinamento da equipe este ano, mesmo com o aperto no caixa. Aprovamos?",
+    accept:{ cai:-6, ltc:"manterTreinamento" }, reject:{ cai:6, ltc:"cortouTreinamento" } },
+  { id:"denuncia", char:"marina", text:"Recebi uma denúncia de assédio na produção. Quero abrir uma investigação formal, mesmo que isso gere desconforto interno. Aprovamos?",
+    accept:{ equ:2, ltc:"investigouDenuncia" }, reject:{ equ:-4, ltc:"ignorouDenuncia" } },
+  { id:"algodaoOrganico", char:"fabio", text:"Posso negociar algodão orgânico certificado para a próxima coleção. O custo por metro é maior. Negocio?",
+    accept:{ cai:-8, ltc:"algodaoOrganico" }, reject:{ cai:5, ltc:"algodaoConvencional" } },
+  { id:"cooperativa", char:"lucia", text:"Uma cooperativa local de costureiras quer fechar uma parceria de produção conosco. O preço é justo, mas a capacidade é menor que a de grandes fábricas.",
+    accept:{ cre:-3, ltc:"parceriaCooperativa" }, reject:{ cre:3, ltc:"recusouCooperativa" } },
+  { id:"reciclagemAgua", char:"beatriz", text:"Podemos instalar um sistema de reciclagem de água no processo de tingimento. O investimento inicial é alto.",
+    accept:{ cai:-12, ltc:"reciclagemAgua" }, reject:{ cai:6, ltc:"semReciclagemAgua" } },
+  { id:"auditoria", char:"otavio", text:"Podemos contratar uma auditoria trabalhista externa para revisar nossos contratos e condições de trabalho. Vai custar, mas evita riscos.",
+    accept:{ cai:-8, ltc:"auditoriaFeita" }, reject:{ cai:5, ltc:"semAuditoria" } },
+  { id:"maquinario", char:"carlos", text:"Podemos investir em maquinário mais moderno para a produção. Caro agora, mas reduz desperdício e aumenta capacidade.",
+    accept:{ cai:-14, ltc:"maquinarioNovo" }, reject:{ cai:8, ltc:"maquinarioAntigo" } },
+  { id:"embalagemGranel", char:"beatriz", text:"Podemos vender parte da coleção em embalagem a granel, sem plástico individual, reduzindo bastante o desperdício.",
+    accept:{ cre:-2, ltc:"embalagemGranel" }, reject:{ cre:2, ltc:"embalagemIndividual" } },
+  { id:"pagamento", char:"otavio", text:"Podemos priorizar o pagamento em dia dos pequenos fornecedores locais, mesmo que isso aperte nosso caixa neste mês.",
+    accept:{ cai:-6, ltc:"pagouEmDia" }, reject:{ cai:6, ltc:"atrasouPagamento" } },
+  { id:"diversidade", char:"marina", text:"Podemos revisar nosso processo seletivo para ampliar a diversidade na produção e no design. Exige tempo e ajustes internos.",
+    accept:{ equ:-2, ltc:"diversidadeOk" }, reject:{ equ:2, ltc:"semDiversidade" } },
+  { id:"bemEstar", char:"marina", text:"Podemos criar um programa de bem-estar para a equipe de produção, com pausas melhores e apoio psicológico. Tem custo mensal.",
+    accept:{ cai:-4, ltc:"bemEstarOk" }, reject:{ cai:3, ltc:"semBemEstar" } },
+  { id:"rotulo", char:"beatriz", text:"Podemos criar um rótulo detalhado, mostrando exatamente a composição e origem de cada peça. Dá mais trabalho na produção.",
+    accept:{ ope:-2, ltc:"rotuloOk" }, reject:{ ope:2, ltc:"rotuloVago" } },
+  { id:"sobDemanda", char:"lucia", text:"Podemos migrar parte da produção para o modelo sob demanda, reduzindo estoque parado. Isso exige reorganizar toda a operação.",
+    accept:{ ope:-6, ltc:"sobDemandaOk" }, reject:{ ope:4, ltc:"estoqueParado" } },
+  { id:"ecommerce", char:"lucia", text:"Podemos investir em um e-commerce próprio, em vez de depender só de marketplaces. O investimento inicial é alto.",
+    accept:{ cai:-10, ltc:"ecommerceOk" }, reject:{ cai:6, ltc:"dependenciaMarketplace" } },
+  { id:"corantes", char:"fabio", text:"Posso trocar os corantes sintéticos baratos por corantes naturais no tingimento. Custam mais e o processo é mais lento.",
+    accept:{ cai:-8, ope:-2, ltc:"corantesNaturaisOk" }, reject:{ cai:5, ltc:"corantesSinteticos" } },
+  { id:"upcycling", char:"sofia", text:"Posso lançar um programa de troca, onde clientes trazem peças antigas para upcycling e ganham desconto na próxima compra.",
+    accept:{ cai:-4, ltc:"upcyclingOk" }, reject:{ cai:3, ltc:"semUpcycling" } },
+  { id:"compliance", char:"otavio", text:"Encontrei uma forma de reduzir nossos impostos numa zona cinzenta da lei, mas quero autorização antes de arriscar. Seguimos pelo caminho seguro, pagando tudo certinho, ou aproveitamos a brecha?",
+    accept:{ cai:-6, ltc:"complianceOk" }, reject:{ cai:10, ltc:"brechaFiscal" } }
+];
+
+/* ---- cartas simples, sem consequência de longo prazo, para dar textura */
+var SIMPLE_CARDS = [
+  { id:"pedidoUrgente", char:"lucia", text:"Um grande cliente quer um pedido urgente entregue em metade do prazo normal. Vamos precisar apertar a produção.",
+    accept:{ cre:8, ope:-6 }, reject:{ cre:-3 } },
+  { id:"entrevista", char:"renata", text:"Estou fazendo uma matéria sobre marcas de moda emergentes na região. Topam uma entrevista?",
+    accept:{ mar:8 }, reject:{ mar:-2 } },
+  { id:"reclamacao", char:"sofia", text:"Uma cliente reclamou publicamente que a peça desbotou após poucas lavagens. Respondemos e trocamos a peça, ou ignoramos o comentário?",
+    accept:{ mar:4, cai:-3 }, reject:{ mar:-8 } },
+  { id:"feira", char:"lucia", text:"Recebemos convite para expor na maior feira de moda sustentável do país. A taxa de participação é alta.",
+    accept:{ cai:-10, cre:12 }, reject:{ cre:-2 } },
+  { id:"investidor", char:"lucia", text:"Um investidor-anjo quer aportar capital na empresa em troca de uma pequena participação societária.",
+    accept:{ cai:16, cre:4 }, reject:{ cai:-2 } },
+  { id:"reajuste", char:"marina", text:"A equipe está pedindo um pequeno reajuste salarial acima da inflação deste ano.",
+    accept:{ equ:10, cai:-8 }, reject:{ equ:-10, cai:3 } },
+  { id:"campanha", char:"sofia", text:"Podemos investir em uma campanha de marketing digital mais agressiva para a próxima coleção.",
+    accept:{ cai:-8, cre:10 }, reject:{ cre:-3 } },
+  { id:"aluguel", char:"otavio", text:"Consegui negociar uma redução no aluguel do galpão da fábrica em troca de um contrato mais longo. Fechamos?",
+    accept:{ cai:6, cre:-2 }, reject:{ cai:-2 } },
+  { id:"parceriaDesigner", char:"lucia", text:"Uma designer local famosa quer fazer uma coleção-cápsula em parceria com a nossa marca.",
+    accept:{ mar:10, cai:-6 }, reject:{ mar:-2 } },
+  { id:"crisePR", char:"renata", text:"Um boato nas redes sociais sugere que a marca usa mão de obra irregular. Não é verdade. Querem desmentir oficialmente?",
+    accept:{ mar:6 }, reject:{ mar:-10 } },
+  { id:"lojaFisica", char:"lucia", text:"Podemos abrir uma loja física própria em um shopping popular da cidade. O investimento é alto.",
+    accept:{ cai:-14, cre:10 }, reject:{ cre:-3 } },
+  { id:"doacao", char:"beatriz", text:"Podemos doar parte das sobras de tecido para um projeto social da comunidade local.",
+    accept:{ mar:6, cai:-2 }, reject:{ mar:-2 } }
+];
+
+/* ---- as 60 consequências de longo prazo (30 positivas + 30 negativas).
+        char = quem entrega a notícia; delay em anos após a decisão. ---- */
+var LTC = {
+  solar:               { char:"renata", polarity:"pos", text:"A instalação dos painéis solares aprovada anos atrás já reduziu os gastos com energia em quase 30%, aumentando nossa margem.", effects:{ cai:16, ope:6 }, minDelay:4, maxDelay:9 },
+  semSolar:             { char:"otavio", polarity:"neg", text:"Os custos de energia continuam subindo e pesam cada vez mais no caixa — um problema que poderíamos ter evitado anos atrás.", effects:{ cai:-12, ope:-4 }, minDelay:5, maxDelay:10 },
+
+  retalhos:             { char:"sofia", polarity:"pos", text:"Influenciadoras estão elogiando a linha feita com retalhos reaproveitados, lançada anos atrás. As peças esgotaram em poucos dias.", effects:{ mar:14, cre:10 }, minDelay:2, maxDelay:7 },
+  descarteRetalhos:     { char:"renata", polarity:"neg", text:"Uma reportagem mostrou o volume de tecido descartado pela nossa fábrica em um aterro local, gerando forte repercussão negativa.", effects:{ mar:-16 }, minDelay:4, maxDelay:10 },
+
+  treinamento:          { char:"carlos", polarity:"pos", text:"A qualidade das peças melhorou tanto, graças ao treinamento técnico de anos atrás, que o índice de devoluções caiu para quase zero.", effects:{ mar:10, ope:10 }, minDelay:3, maxDelay:8 },
+  semTreinamento:       { char:"renata", polarity:"neg", text:"Clientes têm reclamado da qualidade das costuras nas últimas coleções.", effects:{ mar:-12, ope:-6 }, minDelay:3, maxDelay:9 },
+
+  ergonomia:            { char:"marina", polarity:"pos", text:"Os afastamentos por lesão caíram drasticamente desde a reforma ergonômica das bancadas, feita anos atrás.", effects:{ equ:12, ope:6 }, minDelay:3, maxDelay:9 },
+  semErgonomia:         { char:"marina", polarity:"neg", text:"Vários funcionários da produção se afastaram por lesões relacionadas ao trabalho repetitivo.", effects:{ equ:-14, ope:-6 }, minDelay:4, maxDelay:10 },
+
+  embalagem:            { char:"sofia", polarity:"pos", text:"Clientes estão elogiando nas redes as embalagens sustentáveis adotadas pela marca anos atrás.", effects:{ mar:10 }, minDelay:2, maxDelay:6 },
+  embalagemPlastico:    { char:"renata", polarity:"neg", text:"Uma matéria destacou o volume de plástico usado nas embalagens da marca, na contramão do setor.", effects:{ mar:-10 }, minDelay:4, maxDelay:9 },
+
+  certificacao:         { char:"renata", polarity:"pos", text:"A marca recebeu reconhecimento público por sua transparência na cadeia produtiva, resultado da certificação de fornecedores buscada anos atrás.", effects:{ mar:16, cre:6 }, minDelay:3, maxDelay:9 },
+  semCertificacao:      { char:"renata", polarity:"neg", text:"Uma investigação revelou irregularidades em um dos fornecedores escolhidos anos atrás.", effects:{ mar:-18 }, minDelay:3, maxDelay:10 },
+
+  residuos:             { char:"beatriz", polarity:"pos", text:"O sistema de gestão de resíduos têxteis implementado anos atrás reduziu nossos custos de descarte e ainda gerou receita com material reciclável.", effects:{ cai:10, ope:6 }, minDelay:3, maxDelay:8 },
+  residuosMalGeridos:   { char:"renata", polarity:"neg", text:"A prefeitura autuou a empresa por descarte irregular de resíduos têxteis acumulados ao longo dos anos.", effects:{ cai:-14, mar:-10 }, minDelay:3, maxDelay:9 },
+
+  transparencia:        { char:"sofia", polarity:"pos", text:"Uma influenciadora comentou publicamente sobre como é raro ver uma marca tão transparente sobre sua cadeia produtiva, referência publicada anos atrás.", effects:{ mar:14, cre:6 }, minDelay:2, maxDelay:6 },
+  opacidadeCadeia:      { char:"renata", polarity:"neg", text:"Consumidores têm questionado a falta de transparência da marca sobre sua cadeia produtiva.", effects:{ mar:-10 }, minDelay:4, maxDelay:10 },
+
+  manutencaoEmDia:      { char:"carlos", polarity:"pos", text:"As máquinas bem mantidas ao longo dos anos têm rodado sem paradas, aumentando nossa capacidade de entrega.", effects:{ ope:12 }, minDelay:3, maxDelay:8 },
+  manutencaoAdiada:     { char:"carlos", polarity:"neg", text:"Uma máquina que ficou anos sem manutenção quebrou durante a produção, paralisando uma linha inteira.", effects:{ cai:-16, ope:-18, mar:-8 }, minDelay:4, maxDelay:11 },
+
+  fornecedorB:          { char:"renata", polarity:"pos", text:"A marca foi citada como exemplo de cadeia produtiva responsável em uma feira do setor, graças à escolha por um fornecedor certificado anos atrás.", effects:{ mar:12, cre:8 }, minDelay:3, maxDelay:9 },
+  fornecedorA:          { char:"renata", polarity:"neg", text:"Descobriu-se que o algodão mais barato comprado anos atrás vinha de uma região com trabalho análogo à escravidão.", effects:{ mar:-24 }, minDelay:4, maxDelay:12 },
+
+  segurancaOk:          { char:"marina", polarity:"pos", text:"Zero acidentes de trabalho registrados desde que o programa de segurança foi implementado anos atrás.", effects:{ equ:10, mar:6 }, minDelay:3, maxDelay:9 },
+  segurancaIgnorada:    { char:"carlos", polarity:"neg", text:"Um acidente grave na produção, que poderia ter sido evitado com melhores equipamentos de proteção, feriu um funcionário.", effects:{ equ:-16, mar:-14, cai:-8 }, minDelay:3, maxDelay:10 },
+
+  contratouTemporarios: { char:"marina", polarity:"pos", text:"A equipe elogiou a decisão de contratar reforços na alta temporada de anos atrás, e o clima interno melhorou.", effects:{ equ:10 }, minDelay:2, maxDelay:6 },
+  excessoHorasExtras:   { char:"marina", polarity:"neg", text:"Vários funcionários pediram demissão citando esgotamento por excesso de horas extras nas últimas temporadas.", effects:{ equ:-18, ope:-6 }, minDelay:3, maxDelay:8 },
+
+  qualidadeReforcada:   { char:"renata", polarity:"pos", text:"A marca é elogiada pela consistência da qualidade em suas últimas coleções.", effects:{ mar:10 }, minDelay:2, maxDelay:6 },
+  qualidadeRelaxada:    { char:"renata", polarity:"neg", text:"Clientes relatam um número crescente de peças com defeito nas últimas coleções.", effects:{ mar:-14, ope:-4 }, minDelay:3, maxDelay:8 },
+
+  manterTreinamento:    { char:"marina", polarity:"pos", text:"A equipe mais bem treinada, resultado de anos mantendo o orçamento de capacitação, elevou o padrão de qualidade e a moral do time.", effects:{ equ:8, ope:6 }, minDelay:3, maxDelay:8 },
+  cortouTreinamento:    { char:"carlos", polarity:"neg", text:"A falta de treinamento recente é apontada como causa de erros recorrentes na produção.", effects:{ ope:-10, equ:-6 }, minDelay:3, maxDelay:9 },
+
+  investigouDenuncia:   { char:"marina", polarity:"pos", text:"A forma séria como conduzimos aquela investigação de assédio anos atrás é hoje citada como exemplo de cultura de respeito na empresa.", effects:{ equ:12, mar:6 }, minDelay:3, maxDelay:8 },
+  ignorouDenuncia:      { char:"renata", polarity:"neg", text:"Uma denúncia de assédio ignorada anos atrás veio à tona publicamente, com provas.", effects:{ equ:-16, mar:-18 }, minDelay:3, maxDelay:9 },
+
+  algodaoOrganico:      { char:"sofia", polarity:"pos", text:"A coleção feita com algodão orgânico negociado anos atrás virou queridinha entre consumidores mais conscientes.", effects:{ mar:12, cre:6 }, minDelay:2, maxDelay:7 },
+  algodaoConvencional:  { char:"renata", polarity:"neg", text:"Uma reportagem associa o algodão convencional usado pela marca ao uso intensivo de agrotóxicos.", effects:{ mar:-10 }, minDelay:4, maxDelay:10 },
+
+  parceriaCooperativa:  { char:"renata", polarity:"pos", text:"A parceria com a cooperativa local de costureiras, fechada anos atrás, rendeu boa cobertura de imprensa sobre impacto social positivo.", effects:{ mar:12, equ:6 }, minDelay:3, maxDelay:8 },
+  recusouCooperativa:   { char:"lucia", polarity:"neg", text:"Perdemos espaço para um concorrente que fechou com aquela cooperativa que recusamos anos atrás.", effects:{ cre:-8 }, minDelay:3, maxDelay:9 },
+
+  reciclagemAgua:       { char:"renata", polarity:"pos", text:"O sistema de reciclagem de água instalado anos atrás reduziu nosso consumo hídrico e virou destaque em uma feira do setor.", effects:{ mar:10, cai:8 }, minDelay:4, maxDelay:10 },
+  semReciclagemAgua:    { char:"renata", polarity:"neg", text:"Órgão ambiental notificou a empresa pelo alto consumo de água no processo de tingimento.", effects:{ cai:-10, mar:-8 }, minDelay:4, maxDelay:11 },
+
+  auditoriaFeita:       { char:"otavio", polarity:"pos", text:"A auditoria trabalhista externa contratada anos atrás nos ajudou a corrigir pendências antes que virassem problemas maiores.", effects:{ equ:8, mar:6 }, minDelay:2, maxDelay:7 },
+  semAuditoria:         { char:"renata", polarity:"neg", text:"Um processo trabalhista coletivo expôs irregularidades que uma auditoria poderia ter evitado anos atrás.", effects:{ cai:-14, mar:-10 }, minDelay:4, maxDelay:11 },
+
+  maquinarioNovo:       { char:"carlos", polarity:"pos", text:"O maquinário mais moderno comprado anos atrás aumentou nossa capacidade produtiva e reduziu o desperdício de matéria-prima.", effects:{ ope:14, cai:6 }, minDelay:3, maxDelay:8 },
+  maquinarioAntigo:     { char:"carlos", polarity:"neg", text:"O maquinário antigo está causando cada vez mais paradas e desperdício de material na produção.", effects:{ ope:-12, cai:-6 }, minDelay:4, maxDelay:10 },
+
+  embalagemGranel:      { char:"sofia", polarity:"pos", text:"A iniciativa de venda sem embalagem individual, lançada anos atrás, viralizou como exemplo de consumo consciente.", effects:{ mar:12 }, minDelay:2, maxDelay:6 },
+  embalagemIndividual:  { char:"renata", polarity:"neg", text:"O excesso de embalagens individuais da marca foi citado em uma matéria sobre desperdício no varejo de moda.", effects:{ mar:-8 }, minDelay:4, maxDelay:9 },
+
+  pagouEmDia:           { char:"lucia", polarity:"pos", text:"Nossa reputação como parceiro confiável, construída ao longo de anos pagando fornecedores em dia, nos rendeu condições melhores no mercado.", effects:{ cre:8, mar:6 }, minDelay:3, maxDelay:8 },
+  atrasouPagamento:     { char:"renata", polarity:"neg", text:"Pequenos fornecedores relataram publicamente atrasos frequentes de pagamento por parte da marca.", effects:{ mar:-12, cre:-4 }, minDelay:3, maxDelay:9 },
+
+  diversidadeOk:        { char:"renata", polarity:"pos", text:"A marca foi destacada por sua equipe diversa e representativa em uma matéria sobre o setor.", effects:{ mar:10, equ:6 }, minDelay:2, maxDelay:7 },
+  semDiversidade:       { char:"renata", polarity:"neg", text:"A falta de diversidade na equipe da marca foi criticada publicamente por consumidores nas redes.", effects:{ mar:-8 }, minDelay:4, maxDelay:9 },
+
+  bemEstarOk:           { char:"marina", polarity:"pos", text:"A rotatividade da equipe de produção caiu significativamente desde o início do programa de bem-estar, anos atrás.", effects:{ equ:14, ope:4 }, minDelay:3, maxDelay:8 },
+  semBemEstar:          { char:"marina", polarity:"neg", text:"O esgotamento acumulado da equipe de produção resultou em uma onda de pedidos de demissão.", effects:{ equ:-14, ope:-6 }, minDelay:3, maxDelay:9 },
+
+  rotuloOk:             { char:"sofia", polarity:"pos", text:"Consumidores elogiam a clareza das etiquetas da marca, criadas anos atrás, em comparação com concorrentes.", effects:{ mar:10 }, minDelay:2, maxDelay:6 },
+  rotuloVago:           { char:"renata", polarity:"neg", text:"Uma investigação de consumo apontou que os rótulos da marca não informam a composição real das peças.", effects:{ mar:-12 }, minDelay:4, maxDelay:10 },
+
+  sobDemandaOk:         { char:"lucia", polarity:"pos", text:"A migração para produção sob demanda, feita anos atrás, reduziu drasticamente nosso desperdício e o capital parado em estoque.", effects:{ cai:12, cre:6 }, minDelay:3, maxDelay:8 },
+  estoqueParado:        { char:"otavio", polarity:"neg", text:"O estoque parado acumulado das últimas coleções está pesando cada vez mais no caixa da empresa.", effects:{ cai:-12 }, minDelay:4, maxDelay:10 },
+
+  ecommerceOk:          { char:"lucia", polarity:"pos", text:"O e-commerce próprio, lançado anos atrás, já responde por boa parte das vendas, com margem bem melhor que os marketplaces.", effects:{ cre:14, cai:8 }, minDelay:3, maxDelay:9 },
+  dependenciaMarketplace:{ char:"lucia", polarity:"neg", text:"Uma mudança nas taxas dos marketplaces reduziu drasticamente nossa margem de lucro nas vendas online.", effects:{ cai:-10, cre:-4 }, minDelay:4, maxDelay:10 },
+
+  corantesNaturaisOk:   { char:"renata", polarity:"pos", text:"A linha tingida com corantes naturais, criada anos atrás, foi destaque em uma reportagem sobre inovação sustentável na moda.", effects:{ mar:12 }, minDelay:3, maxDelay:8 },
+  corantesSinteticos:   { char:"renata", polarity:"neg", text:"Resíduos de corantes sintéticos da produção foram encontrados contaminando um rio próximo à fábrica.", effects:{ mar:-20, cai:-10 }, minDelay:4, maxDelay:11 },
+
+  upcyclingOk:          { char:"sofia", polarity:"pos", text:"O programa de troca e upcycling, lançado anos atrás, virou um diferencial que os clientes adoram comentar nas redes.", effects:{ mar:12, cre:6 }, minDelay:2, maxDelay:6 },
+  semUpcycling:         { char:"sofia", polarity:"neg", text:"Um concorrente lançou um programa de upcycling parecido com o que descartamos anos atrás, e está bombando.", effects:{ cre:-6 }, minDelay:4, maxDelay:9 },
+
+  complianceOk:         { char:"otavio", polarity:"pos", text:"Nossa postura fiscal rigorosa, mantida ao longo dos anos, nos garantiu acesso a uma linha de crédito facilitada para pequenas empresas sustentáveis.", effects:{ cai:12, cre:6 }, minDelay:3, maxDelay:8 },
+  brechaFiscal:         { char:"otavio", polarity:"neg", text:"A Receita Federal reabriu um processo sobre aquela brecha fiscal usada há anos. Pode virar um problema sério.", effects:{ cai:-16, mar:-8 }, minDelay:4, maxDelay:11 }
+};
+
+/* ---- eventos raros ------------------------------------------------------ */
+var RARE_CARDS = [
+  { id:"rare_algodao", char:"fabio", text:"Fábio avisa: o preço internacional do algodão disparou. Nossos custos de matéria-prima vão subir bastante neste ciclo.",
+    accept:{ cai:-14, ope:2 }, reject:{ cai:-6, ope:-8 } },
+  { id:"rare_incendio", char:"carlos", text:"Carlos liga alarmado: houve um princípio de incêndio na fábrica. Ninguém se feriu, mas parte do estoque foi perdido.",
+    accept:{ cai:-16, equ:6 }, reject:{ cai:-6, equ:-10, ope:-6 } },
+  { id:"rare_recall", char:"otavio", text:"Detectamos um defeito de costura em um lote inteiro já enviado às lojas. Fazemos o recall ou esperamos as reclamações chegarem?",
+    accept:{ cai:-12, mar:6 }, reject:{ mar:-18 } },
+  { id:"rare_viral", char:"sofia", text:"Sofia liga animada: uma peça nossa apareceu, sem combinar, em um vídeo que viralizou. Ela quer amplificar isso com uma campanha relâmpago.",
+    accept:{ mar:16, cai:-4 }, reject:{ mar:3 } },
+  { id:"rare_fiscalizacao", char:"marina", text:"Marina avisa: uma fiscalização trabalhista surpresa está prevista para a próxima semana na fábrica.",
+    accept:{ equ:10, cai:-10 }, reject:{ equ:-16, mar:-8 } },
+  { id:"rare_boicote", char:"renata", text:"Renata relata: um pequeno grupo nas redes está pedindo boicote à marca por causa de um comentário mal interpretado do fundador.",
+    accept:{ mar:4 }, reject:{ mar:-14 } },
+  { id:"rare_enchente", char:"carlos", text:"Uma enchente atingiu o depósito onde guardamos parte do estoque da coleção. Precisamos decidir como agir rápido.",
+    accept:{ cai:-10, ope:4 }, reject:{ cai:-4, ope:-10 } },
+  { id:"rare_tendencia", char:"lucia", text:"Lúcia avisa: uma mudança repentina de tendência deixou parte da nossa coleção atual fora de moda mais cedo que o esperado.",
+    accept:{ cre:-6, cai:-4 }, reject:{ cre:-12 } }
+];
+
+/* ---- oportunidades geradas por boas práticas — só aparecem quando o
+        indicador relacionado está alto o suficiente. ---------------------- */
+var OPPORTUNITY_CARDS = [
+  { id:"opp_feira", char:"lucia", need:{ k:"mar", min:65 }, text:"Fomos convidados para expor de graça em uma feira internacional de moda sustentável, graças à nossa reputação. Vamos?",
+    accept:{ cre:14, mar:4 }, reject:{ cre:2 } },
+  { id:"opp_investimento", char:"lucia", need:{ k:"mar", min:70 }, text:"Um fundo de impacto quer investir na empresa por reconhecer nossas práticas responsáveis.",
+    accept:{ cai:18, cre:6 }, reject:{ cai:2 } },
+  { id:"opp_credito", char:"otavio", need:{ k:"mar", min:60 }, text:"Um banco está oferecendo uma linha de crédito com juros baixos para empresas com boas práticas comprovadas. Aceitamos?",
+    accept:{ cai:14 }, reject:{ cai:2 } },
+  { id:"opp_grife", char:"lucia", need:{ k:"mar", min:75 }, text:"Uma grife internacional quer uma parceria de coleção-cápsula com nossa marca, atraída pela nossa reputação sustentável.",
+    accept:{ mar:10, cre:10 }, reject:{ cre:-2 } },
+  { id:"opp_contrato", char:"lucia", need:{ k:"ope", min:70 }, text:"Uma grande rede de lojas quer fechar um contrato de fornecimento de longo prazo, impressionada com nossa capacidade produtiva.",
+    accept:{ cre:16, cai:6 }, reject:{ cre:-2 } },
+  { id:"opp_capa", char:"renata", need:{ k:"mar", min:80 }, text:"Fomos convidados para estampar a capa de uma revista de negócios como case de sucesso em moda responsável.",
+    accept:{ mar:12 }, reject:{ mar:2 } },
+  { id:"opp_premio", char:"marina", need:{ k:"equ", min:75 }, text:"Fomos indicados a um prêmio nacional de melhores práticas trabalhistas no setor têxtil.",
+    accept:{ equ:10, mar:8 }, reject:{ equ:2 } },
+  { id:"opp_exportacao", char:"lucia", need:{ k:"cre", min:75 }, text:"Uma trading internacional quer nos ajudar a exportar nossa coleção para o exterior.",
+    accept:{ cre:14, cai:8 }, reject:{ cre:2 } }
+];
+
+/* ---- notícias periódicas — o mundo reagindo, com tom variável --------- */
+var NEWS_OUTLETS = ["Revista Moda Brasil","Portal Fashion","Economia Regional","Jornal Regional","Revista Negócios da Moda","Diário do Setor Têxtil","Mercado da Moda"];
+var POSITIVE_NEWS = [
+  { text:"Marca local conquista consumidores ao reaproveitar tecidos que seriam descartados.", cat:"mar" },
+  { text:"Coleção produzida com matéria-prima rastreável esgota em duas semanas.", cat:"cre" },
+  { text:"Custos de energia da empresa estão abaixo da média do setor.", cat:"cai" },
+  { text:"Pesquisa de clima aponta baixa rotatividade entre costureiras da região.", cat:"equ" },
+  { text:"Analistas destacam eficiência produtiva acima da média do setor têxtil local.", cat:"ope" },
+  { text:"Marca é citada como case de sucesso em evento sobre pequenas empresas de moda.", cat:"geral" },
+  { text:"Consumidores elogiam durabilidade das peças em pesquisa de satisfação.", cat:"mar" },
+  { text:"Empresa registra crescimento consistente nas vendas online.", cat:"cre" },
+  { text:"Balanço trimestral da empresa surpreende positivamente fornecedores e parceiros.", cat:"cai" },
+  { text:"Equipe de produção é elogiada por associação local do setor têxtil.", cat:"equ" },
+  { text:"Novo maquinário reduz tempo de produção sem perda de qualidade.", cat:"ope" },
+  { text:"Marca é procurada por lojistas de outras regiões após boa repercussão nas redes.", cat:"cre" }
+];
+var NEGATIVE_NEWS = [
+  { text:"Consumidores relatam demora nas trocas e devoluções da marca.", cat:"mar" },
+  { text:"Fornecedores da região relatam atraso generalizado de pagamentos no setor, incluindo a empresa.", cat:"cai" },
+  { text:"Ex-funcionários relatam clima pesado durante períodos de alta demanda.", cat:"equ" },
+  { text:"Especialistas apontam gargalos na produção de pequenas confecções da região.", cat:"ope" },
+  { text:"Vendas da temporada ficam abaixo do esperado para marcas de médio porte.", cat:"cre" },
+  { text:"Reportagem questiona a durabilidade das peças de fast fashion produzidas na região.", cat:"mar" },
+  { text:"Aumento no preço de insumos têxteis pressiona o caixa de pequenas marcas.", cat:"cai" },
+  { text:"Setor têxtil registra alta rotatividade de mão de obra este ano.", cat:"equ" },
+  { text:"Falhas recorrentes de entrega afetam a confiança de lojistas parceiros.", cat:"ope" },
+  { text:"Crescimento do setor de moda desacelera pelo segundo trimestre seguido.", cat:"cre" }
+];
+var NEUTRAL_NEWS = [
+  "Empresa realiza mudança de endereço do escritório administrativo.",
+  "Setor têxtil regional participa de rodada de negócios sem grandes anúncios.",
+  "Marca atualiza sua identidade visual nas redes sociais.",
+  "Novo catálogo digital da empresa é lançado sem alterações de preço.",
+  "Associação do setor têxtil divulga calendário de eventos do ano.",
+  "Empresa confirma presença em feira regional de pequenos negócios."
+];
+
+var ACHIEVEMENTS = [
+  { id:"consolidada", name:"Marca Consolidada",        desc:"Chegue ao ano 20",     icon:"🏆", check:function(s){ return s.year>=20; } },
+  { id:"referencia",  name:"Referência do Setor",       desc:"Chegue ao ano 40",     icon:"🏆", check:function(s){ return s.year>=40; } },
+  { id:"lenda",       name:"Lenda da Moda Responsável", desc:"Chegue ao ano 60",     icon:"🏆", check:function(s){ return s.year>=60; } },
+  { id:"caixaForte",  name:"Caixa Forte",               desc:"Caixa em 100",         icon:"🏆", check:function(s){ return s.ind.cai>=100; } },
+  { id:"equipeSonho", name:"Equipe dos Sonhos",         desc:"Equipe em 100",        icon:"🏆", check:function(s){ return s.ind.equ>=100; } },
+  { id:"marcaAmada",  name:"Marca Amada",               desc:"Valor da Marca em 100",icon:"🏆", check:function(s){ return s.ind.mar>=100; } },
+  { id:"fabricaModelo",name:"Fábrica Modelo",           desc:"Operação em 100",      icon:"🏆", check:function(s){ return s.ind.ope>=100; } },
+  { id:"expansaoNac", name:"Expansão Nacional",         desc:"Crescimento em 100",   icon:"🏆", check:function(s){ return s.ind.cre>=100; } }
+];
+
+var NEGATIVE_ENDINGS = {
+  cai:{ title:"Falência", text:"O caixa secou. Fornecedores, equipe e aluguel não saem mais das contas a pagar. A marca encerra as portas hoje." },
+  equ:{ title:"Fuga em Massa", text:"A equipe de produção se esvaziou. Sem gente para costurar, cortar ou revisar, a fábrica simplesmente parou." },
+  ope:{ title:"Colapso Produtivo", text:"As máquinas pararam, os prazos não se cumprem mais e a operação virou um caos irreversível." },
+  mar:{ title:"Boicote Total", text:"Os consumidores deram as costas à marca de vez. Nenhuma campanha, pedido de desculpas ou promoção reverteu o estrago." },
+  cre:{ title:"Estagnação e Fechamento", text:"A marca parou no tempo enquanto o mercado de moda seguiu em frente. Não sobrou espaço para ela." }
+};
+var POSITIVE_ENDINGS = {
+  cai:{ title:"Referência Financeira do Setor", text:"O caixa da empresa é hoje citado como exemplo de solidez entre pequenas marcas de moda. Mas a que custo isso foi construído?" },
+  equ:{ title:"Melhor Lugar para Costurar", text:"Costureiras e designers fazem fila para entrar. A marca virou sinônimo de um lugar onde as pessoas querem trabalhar." },
+  mar:{ title:"Marca Mais Desejada do País", text:"O nome da marca virou sinônimo de confiança e estilo. Clientes defendem a marca como se fosse própria." },
+  ope:{ title:"Fábrica Modelo Nacional", text:"Outras confecções visitam a fábrica para estudar seus processos. A operação é hoje referência de eficiência no setor." },
+  cre:{ title:"Expansão Nacional Consolidada", text:"A marca, que começou pequena, hoje vende para o país inteiro. Ninguém mais duvida do seu tamanho." }
+};
+var SUPREME_ENDING = { title:"Referência Nacional em Moda Responsável", text:"Por uma década inteira, cada indicador da empresa se manteve em excelência simultânea. A marca provou, na prática, que sustentabilidade, boa governança e valorização das pessoas geram valor real e duradouro — não é só custo, é estratégia." };
+
+/* ---- concorrentes: evoluem sozinhos, disputando participação de mercado */
+var COMPETITORS_INITIAL = [
+  { id:"ecotech",     name:"Verdana",      emoji:"🏢", specialty:"mar" },
+  { id:"maxcorp",     name:"Fast Modas",   emoji:"🏢", specialty:"cai" },
+  { id:"peoplefirst", name:"Boa Costura",  emoji:"🏢", specialty:"equ" },
+  { id:"novagrowth",  name:"ExpandeModa",  emoji:"🏢", specialty:"cre" }
+];
+
+/* =========================================================================
+   2. ESTADO
+   ========================================================================= */
+
+function freshState(){
+  var competitors = COMPETITORS_INITIAL.map(function(c){
+    return { id:c.id, name:c.name, emoji:c.emoji, specialty:c.specialty,
+      ind:{ cai:45+Math.random()*15, mar:45+Math.random()*15, equ:45+Math.random()*15, ope:45+Math.random()*15, cre:45+Math.random()*15 } };
+  });
+  return {
+    companyName: COMPANY_NAMES[Math.floor(Math.random()*COMPANY_NAMES.length)],
+    ind: { cai:50, mar:50, equ:50, ope:50, cre:50 },
+    year: 1,
+    decisions: 0,
+    history: [],
+    goodChoices: [],
+    positiveEvents: [],
+    unlocked: {},
+    scheduled: [],
+    usedNormal: {},
+    usedRare: {},
+    usedOpportunity: {},
+    usedNews: { pos:{}, neg:{}, neutral:{} },
+    lastNewsYear: 0,
+    lastCollectionYear: 0,
+    streak80: 0,
+    market: { player:34, ecotech:24, maxcorp:20, peoplefirst:13, novagrowth:9 },
+    competitors: competitors,
+    currentCard: null,
+    over: false
+  };
+}
+var S = freshState();
+
+/* =========================================================================
+   3. UTILITÁRIOS
+   ========================================================================= */
+
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+function randInt(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+function barColor(v){
+  if(v>=90) return "var(--bar-90)";
+  if(v>=70) return "var(--bar-70)";
+  if(v>=50) return "var(--bar-50)";
+  if(v>=30) return "var(--bar-30)";
+  return "var(--bar-0)";
+}
+function pickRandom(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function el(tag, cls, html){ var e=document.createElement(tag); if(cls) e.className=cls; if(html!==undefined) e.innerHTML=html; return e; }
+function avgInd(o){ return (o.cai+o.mar+o.equ+o.ope+o.cre)/5; }
+
+/* =========================================================================
+   4. MOTOR DE CARTAS
+   ========================================================================= */
+
+function buildLtcCard(schedId){
+  var ev = LTC[schedId];
+  return { kind:"consequence", id:schedId, char:ev.char, text:ev.text, accept:ev.effects, reject:ev.effects };
+}
+
+function buildCollectionCard(){
+  var seasons = ["Primavera","Verão","Outono","Inverno"];
+  var season = seasons[S.year % 4];
+  var produced = Math.round(2200 + S.ind.ope*32 + (Math.random()*300-150));
+  var soldRatio = clamp(0.45 + S.ind.mar/160 + (Math.random()*0.08-0.04), 0.25, 0.97);
+  var sold = Math.round(produced*soldRatio);
+  var leftover = produced - sold;
+  var reused = clamp(Math.round(8 + S.ind.equ*0.25 + S.ind.mar*0.2 + (Math.random()*8-4)), 0, 92);
+  var rating = clamp((S.ind.mar/13 + S.ind.ope/28 + (Math.random()*0.6-0.3)), 1, 10);
+  var html =
+    '<div class="report-grid">'+
+    '<div class="r-title">Coleção '+season+' '+(2024+S.year)+'</div>'+
+    '<div class="r-row"><span>Peças produzidas</span><b>'+produced.toLocaleString("pt-BR")+'</b></div>'+
+    '<div class="r-row"><span>Peças vendidas</span><b>'+sold.toLocaleString("pt-BR")+'</b></div>'+
+    '<div class="r-row"><span>Sobras</span><b>'+leftover.toLocaleString("pt-BR")+'</b></div>'+
+    '<div class="r-row"><span>Retalhos reaproveitados</span><b>'+reused+'%</b></div>'+
+    '<div class="r-row"><span>Avaliação dos clientes</span><b>'+rating.toFixed(1)+'</b></div>'+
+    '</div>';
+  return { kind:"collection", char:"otavio", html:html, text:"Relatório da coleção "+season+" "+(2024+S.year)+".", accept:{}, reject:{} };
+}
+
+function pickOutlet(){ return pickRandom(NEWS_OUTLETS); }
+
+function pickFromPoolUnique(pool, bucket, keyer){
+  var used = S.usedNews[bucket];
+  var avail = pool.filter(function(item){ return !used[keyer(item)]; });
+  if(avail.length===0){ used = S.usedNews[bucket] = {}; avail = pool; }
+  var chosen = pickRandom(avail);
+  used[keyer(chosen)] = true;
+  return chosen;
+}
+
+function pickCompanyNews(){
+  var trend = { cai:0, mar:0, equ:0, ope:0, cre:0 };
+  S.history.slice(0,10).forEach(function(h){
+    if(h.effects){ IND_KEYS.forEach(function(k){ trend[k]+=(h.effects[k]||0); }); }
+  });
+  var posCats = IND_KEYS.filter(function(k){ return trend[k] >= 12; });
+  var negCats = IND_KEYS.filter(function(k){ return trend[k] <= -12; });
+  var roll = Math.random();
+  if(posCats.length && (roll < 0.45 || negCats.length===0)){
+    var cat = pickRandom(posCats);
+    var pool = POSITIVE_NEWS.filter(function(n){ return n.cat===cat || n.cat==="geral"; });
+    if(!pool.length) pool = POSITIVE_NEWS;
+    var chosen = pickFromPoolUnique(pool,"pos",function(i){ return i.text; });
+    return { outlet: pickOutlet(), text: chosen.text };
+  } else if(negCats.length && roll < 0.85){
+    var cat2 = pickRandom(negCats);
+    var pool2 = NEGATIVE_NEWS.filter(function(n){ return n.cat===cat2; });
+    if(!pool2.length) pool2 = NEGATIVE_NEWS;
+    var chosen2 = pickFromPoolUnique(pool2,"neg",function(i){ return i.text; });
+    return { outlet: pickOutlet(), text: chosen2.text };
+  } else {
+    var chosen3 = pickFromPoolUnique(NEUTRAL_NEWS,"neutral",function(i){ return i; });
+    return { outlet: pickOutlet(), text: chosen3 };
+  }
+}
+
+function pickCompetitorNews(){
+  var c = pickRandom(S.competitors);
+  var stat = c.ind[c.specialty];
+  var positive = stat >= 55 ? (Math.random()<0.75) : (Math.random()<0.25);
+  var specialtyLabel = IND_META[c.specialty].label.toLowerCase();
+  var text = positive
+    ? "A "+c.name+" se destacou em "+specialtyLabel+" e ganhou espaço no mercado da moda regional."
+    : "A "+c.name+" enfrentou dificuldades relacionadas a "+specialtyLabel+" neste período.";
+  return { outlet: pickOutlet(), text: text };
+}
+
+function buildNewsCard(){
+  var data = Math.random() < 0.7 ? pickCompanyNews() : pickCompetitorNews();
+  return { kind:"news", outlet:data.outlet, text:data.text, accept:{}, reject:{} };
+}
+
+function buildOpportunityCard(){
+  var eligible = OPPORTUNITY_CARDS.filter(function(o){ return !S.usedOpportunity[o.id] && S.ind[o.need.k] >= o.need.min; });
+  if(!eligible.length) return null;
+  var opp = pickRandom(eligible);
+  S.usedOpportunity[opp.id] = true;
+  return { kind:"opportunity", id:opp.id, char:opp.char, text:opp.text, accept:opp.accept, reject:opp.reject };
+}
+
+function nextCard(){
+  // 1) consequências agendadas — prioridade máxima (a memória do jogo)
+  for(var i=0;i<S.scheduled.length;i++){
+    if(S.scheduled[i].year <= S.year){
+      var sched = S.scheduled.splice(i,1)[0];
+      return buildLtcCard(sched.id);
+    }
+  }
+
+  // 2) relatório de coleção, a cada 4 anos
+  if(S.year - S.lastCollectionYear >= 4){
+    S.lastCollectionYear = S.year;
+    return buildCollectionCard();
+  }
+
+  // 3) oportunidades geradas por boas práticas
+  if(Math.random() < 0.30){
+    var opp = buildOpportunityCard();
+    if(opp) return opp;
+  }
+
+  // 4) notícias periódicas
+  var dueNews = (S.year - S.lastNewsYear) >= 5;
+  if(dueNews || Math.random() < 0.12){
+    S.lastNewsYear = S.year;
+    return buildNewsCard();
+  }
+
+  // 5) eventos raros
+  var availableRare = RARE_CARDS.filter(function(c){ return !S.usedRare[c.id]; });
+  if(availableRare.length && Math.random() < 0.14){
+    var rc = pickRandom(availableRare);
+    S.usedRare[rc.id] = true;
+    return Object.assign({ kind:"rare" }, rc);
+  }
+
+  // 6) baralho normal (sementes de longo prazo + cartas simples)
+  var deck = SEED_CARDS.concat(SIMPLE_CARDS);
+  var pool = deck.filter(function(c){ return !S.usedNormal[c.id]; });
+  if(pool.length === 0){
+    S.usedNormal = {};
+    pool = deck.slice();
+  }
+  var card = pickRandom(pool);
+  S.usedNormal[card.id] = true;
+  return Object.assign({ kind:"normal" }, card);
+}
+
+function applyEffects(effects){
+  IND_KEYS.forEach(function(k){
+    if(effects[k]){ S.ind[k] = clamp(S.ind[k] + effects[k], 0, 100); }
+  });
+}
+
+function decisionSummary(card, dir){
+  if(card.kind === "news"){ return "Notícia ("+card.outlet+"): "+card.text; }
+  if(card.kind === "collection"){ return "Relatório de coleção divulgado."; }
+  if(card.kind === "consequence"){
+    var snippet = card.text.length > 50 ? card.text.slice(0,50).trim()+"…" : card.text;
+    return "Consequência: "+snippet;
+  }
+  var verb = dir==="accept" ? "Aceitou" : "Recusou";
+  var snippet2 = card.text.length > 46 ? card.text.slice(0,46).trim()+"…" : card.text;
+  return verb + ": " + snippet2;
+}
+
+function evolveCompetitors(){
+  S.competitors.forEach(function(c){
+    IND_KEYS.forEach(function(k){
+      var drift = (k===c.specialty) ? (Math.random()*5-1) : (Math.random()*6-3);
+      c.ind[k] = clamp(c.ind[k]+drift, 0, 100);
+    });
+  });
+}
+
+function updateMarket(){
+  evolveCompetitors();
+  var scores = { player: avgInd(S.ind) };
+  S.competitors.forEach(function(c){ scores[c.id] = avgInd(c.ind); });
+  var total = scores.player + S.competitors.reduce(function(sum,c){ return sum+scores[c.id]; },0);
+  if(total <= 0) total = 1;
+  var target = { player: scores.player/total*100 };
+  S.competitors.forEach(function(c){ target[c.id] = scores[c.id]/total*100; });
+
+  S.market.player = S.market.player*0.85 + target.player*0.15;
+  S.competitors.forEach(function(c){ S.market[c.id] = S.market[c.id]*0.85 + target[c.id]*0.15; });
+
+  var sum = S.market.player + S.competitors.reduce(function(s,c){ return s+S.market[c.id]; },0);
+  if(sum <= 0) sum = 1;
+  S.market.player = S.market.player/sum*100;
+  S.competitors.forEach(function(c){ S.market[c.id] = S.market[c.id]/sum*100; });
+}
+
+function applyDecision(dir){
+  if(S.over || !S.currentCard) return;
+  var card = S.currentCard;
+  var branch = dir==="accept" ? card.accept : card.reject;
+
+  applyEffects(branch);
+
+  if(branch.ltc){
+    var ev = LTC[branch.ltc];
+    if(ev){
+      S.scheduled.push({ year: S.year + randInt(ev.minDelay, ev.maxDelay), id: branch.ltc });
+    }
+  }
+
+  if(card.kind === "normal" && dir === "accept" && branch.ltc){
+    S.goodChoices.push(card.text.length>70?card.text.slice(0,70).trim()+"…":card.text);
+    if(S.goodChoices.length>6) S.goodChoices.shift();
+  }
+  if(card.kind === "consequence"){
+    var ev2 = LTC[card.id];
+    if(ev2 && ev2.polarity === "pos"){
+      S.positiveEvents.push(card.text.length>90?card.text.slice(0,90).trim()+"…":card.text);
+      if(S.positiveEvents.length>6) S.positiveEvents.shift();
+    }
+  }
+
+  var effOnly = {};
+  IND_KEYS.forEach(function(k){ if(branch[k]) effOnly[k]=branch[k]; });
+  S.history.unshift({ year: S.year, text: decisionSummary(card, dir), effects: effOnly });
+  if(S.history.length > 10) S.history.pop();
+
+  S.decisions += 1;
+  S.year += 1;
+
+  updateMarket();
+  checkAchievements();
+
+  var ending = checkEndings();
+  renderDashboard();
+  renderHistoryList();
+
+  if(ending){
+    S.over = true;
+    showEnding(ending);
+    return;
+  }
+  loadNextCard();
+}
+
+function checkEndings(){
+  for(var i=0;i<IND_KEYS.length;i++){
+    var k = IND_KEYS[i];
+    if(S.ind[k] <= 0) return { type:"negative", key:k };
+  }
+  var allAbove80 = IND_KEYS.every(function(k){ return S.ind[k] >= 80; });
+  S.streak80 = allAbove80 ? S.streak80+1 : 0;
+  if(S.streak80 >= 10) return { type:"supreme" };
+  for(var j=0;j<IND_KEYS.length;j++){
+    var k2 = IND_KEYS[j];
+    if(S.ind[k2] >= 100) return { type:"positive", key:k2 };
+  }
+  return null;
+}
+
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(function(a){
+    if(!S.unlocked[a.id] && a.check(S)){
+      S.unlocked[a.id] = true;
+      toast("🏆 Conquista desbloqueada: "+a.name);
+    }
+  });
+}
+
+/* =========================================================================
+   5. RENDERIZAÇÃO
+   ========================================================================= */
+
+var stage = document.getElementById("card-stage");
+var tagEmoji = document.getElementById("tag-emoji");
+var tagName = document.getElementById("tag-name");
+var tagRole = document.getElementById("tag-role");
+var yearPlaque = document.getElementById("year-plaque");
+var dashboard = document.getElementById("dashboard");
+var dragHint = document.getElementById("drag-hint");
+var brandNameEl = document.getElementById("brand-name");
+
+function buildGauges(){
+  dashboard.innerHTML = "";
+  IND_KEYS.forEach(function(k){
+    var meta = IND_META[k];
+    var g = el("div","gauge");
+    g.dataset.k = k;
+    g.innerHTML =
+      '<div class="gauge-head"><span><span class="g-icon">'+meta.icon+'</span> '+meta.label+'</span><span class="g-val" data-val>'+S.ind[k]+'</span></div>'+
+      '<div class="gauge-track"><div class="gauge-fill" data-fill></div></div>';
+    dashboard.appendChild(g);
+  });
+  renderDashboard();
+}
+
+function renderDashboard(){
+  IND_KEYS.forEach(function(k){
+    var g = dashboard.querySelector('.gauge[data-k="'+k+'"]');
+    if(!g) return;
+    var v = Math.round(S.ind[k]);
+    g.querySelector("[data-val]").textContent = v;
+    var fill = g.querySelector("[data-fill]");
+    fill.style.width = v + "%";
+    fill.style.background = barColor(v);
+  });
+  yearPlaque.textContent = "ANO " + S.year;
+}
+
+function renderHistoryList(){
+  var list = document.getElementById("history-list");
+  list.innerHTML = "";
+  if(S.history.length === 0){
+    list.appendChild(el("div","hist-item","<div class='h-text'>Nenhuma decisão registrada ainda.</div>"));
+    return;
+  }
+  S.history.forEach(function(h){
+    var item = el("div","hist-item");
+    item.innerHTML = '<div class="h-year">ANO '+h.year+'</div><div class="h-text">'+h.text+'</div>';
+    list.appendChild(item);
+  });
+}
+
+function renderAchievementsList(){
+  var list = document.getElementById("achievements-list");
+  list.innerHTML = "";
+  ACHIEVEMENTS.forEach(function(a){
+    var unlocked = !!S.unlocked[a.id];
+    var item = el("div","ach-item"+(unlocked?" unlocked":""));
+    item.innerHTML = '<span class="a-icon">'+a.icon+'</span><div><div class="a-name">'+a.name+'</div><div class="a-desc">'+a.desc+'</div></div>';
+    list.appendChild(item);
+  });
+}
+
+function marketRanking(){
+  var rows = [{ id:"player", name: S.companyName+" (você)", pct: S.market.player }];
+  S.competitors.forEach(function(c){ rows.push({ id:c.id, name:c.name, pct: S.market[c.id] }); });
+  rows.sort(function(a,b){ return b.pct-a.pct; });
+  return rows;
+}
+
+function renderMarketList(){
+  var list = document.getElementById("market-list");
+  list.innerHTML = "";
+  marketRanking().forEach(function(row, idx){
+    var item = el("div","market-row"+(row.id==="player"?" me":""));
+    item.innerHTML = '<span class="m-rank">'+(idx+1)+'º</span><span class="m-name">'+row.name+'</span><span class="m-pct">'+row.pct.toFixed(1)+'%</span>';
+    list.appendChild(item);
+  });
+}
+
+function toast(msg){
+  var host = document.getElementById("toast-host");
+  var t = el("div","toast", msg);
+  host.appendChild(t);
+  setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 3000);
+}
+
+/* -------------------------------------------------------- construção da carta */
+
+var DRAG_THRESHOLD = 110;
+
+function tagFor(card){
+  if(card.kind === "news") return { emoji:"📰", name:card.outlet, role:"Notícia do setor" };
+  if(card.kind === "collection") return { emoji:"📋", name:"Relatório", role:"Fim de coleção" };
+  var ch = CHARACTERS[card.char];
+  return { emoji: ch.emoji, name: ch.name, role: ch.role };
+}
+
+function buildCardElement(card){
+  var wrap = el("div","card entering");
+  wrap.tabIndex = 0;
+
+  var t = tagFor(card);
+  var tab = el("div","tab");
+  tab.innerHTML = '<span class="tab-emoji">'+t.emoji+'</span><span class="tab-text"><b>'+t.name+'</b>'+t.role+'</span>';
+  wrap.appendChild(tab);
+
+  if(card.kind === "rare") wrap.appendChild(el("div","rare-flag","evento raro"));
+  if(card.kind === "consequence") wrap.appendChild(el("div","rare-flag","consequência"));
+  if(card.kind === "news") wrap.appendChild(el("div","rare-flag tone-news","notícia"));
+  if(card.kind === "opportunity") wrap.appendChild(el("div","rare-flag tone-good","oportunidade"));
+  if(card.kind === "collection") wrap.appendChild(el("div","rare-flag tone-report","relatório"));
+
+  if(card.kind === "collection"){
+    var reportBox = el("div","quote");
+    reportBox.style.display = "block";
+    reportBox.style.fontStyle = "normal";
+    reportBox.innerHTML = card.html;
+    reportBox.classList.remove("quote");
+    wrap.appendChild(reportBox);
+  } else {
+    var quote = el("div","quote", card.text);
+    wrap.appendChild(quote);
+  }
+
+  var stampAccept = el("div","overlay-stamp accept", card.kind==="news"||card.kind==="collection" ? "OK" : "ACEITAR");
+  var stampReject = el("div","overlay-stamp reject", card.kind==="news"||card.kind==="collection" ? "OK" : "RECUSAR");
+  wrap.appendChild(stampAccept);
+  wrap.appendChild(stampReject);
+
+  attachDrag(wrap, stampAccept, stampReject);
+  return wrap;
+}
+
+function loadNextCard(){
+  var card = nextCard();
+  S.currentCard = card;
+
+  var t = tagFor(card);
+  tagEmoji.textContent = t.emoji;
+  tagName.textContent = t.name;
+  tagRole.textContent = t.role;
+
+  dragHint.textContent = (card.kind==="news"||card.kind==="collection")
+    ? "arraste para qualquer lado para continuar"
+    : "arraste ⟵ recusar · aceitar ⟶";
+
+  var old = stage.querySelector(".card");
+  if(old) old.remove();
+
+  var cardEl = buildCardElement(card);
+  stage.insertBefore(cardEl, stage.firstChild);
+}
+
+/* --------------------------------------------------------------- arrastar */
+
+function attachDrag(cardEl, stampAccept, stampReject){
+  var dragging = false;
+  var startX = 0, startY = 0, dx = 0, dy = 0;
+  var pointerId = null;
+
+  function setTransform(x, y, rot){ cardEl.style.transform = "translate("+x+"px,"+y+"px) rotate("+rot+"deg)"; }
+
+  function onDown(e){
+    if(S.over) return;
+    dragging = true;
+    pointerId = e.pointerId;
+    cardEl.setPointerCapture(pointerId);
+    startX = e.clientX; startY = e.clientY;
+    cardEl.style.transition = "none";
+  }
+
+  function onMove(e){
+    if(!dragging) return;
+    dx = e.clientX - startX;
+    dy = (e.clientY - startY) * 0.35;
+    var rot = clamp(dx / 14, -18, 18);
+    setTransform(dx, dy, rot);
+    var t = clamp(Math.abs(dx) / DRAG_THRESHOLD, 0, 1);
+    if(dx > 0){ stampAccept.style.opacity = t; stampReject.style.opacity = 0; }
+    else { stampReject.style.opacity = t; stampAccept.style.opacity = 0; }
+  }
+
+  function onUp(e){
+    if(!dragging) return;
+    dragging = false;
+    cardEl.style.transition = "transform .35s cubic-bezier(.2,.8,.2,1)";
+    if(dx > DRAG_THRESHOLD) flyOut("accept");
+    else if(dx < -DRAG_THRESHOLD) flyOut("reject");
+    else { setTransform(0,0,0); stampAccept.style.opacity = 0; stampReject.style.opacity = 0; }
+  }
+
+  function flyOut(dir){
+    var sign = dir === "accept" ? 1 : -1;
+    cardEl.style.transition = "transform .4s ease-in, opacity .4s ease-in";
+    setTransform(sign*900, dy - 60, sign*26);
+    cardEl.style.opacity = "0";
+    if(dir==="accept") stampAccept.style.opacity = 1; else stampReject.style.opacity = 1;
+    setTimeout(function(){ applyDecision(dir); }, 260);
+  }
+
+  cardEl.addEventListener("pointerdown", onDown);
+  cardEl.addEventListener("pointermove", onMove);
+  cardEl.addEventListener("pointerup", onUp);
+  cardEl.addEventListener("pointercancel", onUp);
+
+  cardEl._programDecide = function(dir){
+    dx = dir==="accept" ? DRAG_THRESHOLD+1 : -(DRAG_THRESHOLD+1);
+    dy = 0;
+    cardEl.style.transition = "transform .35s cubic-bezier(.2,.8,.2,1)";
+    flyOut(dir);
+  };
+}
+
+/* =========================================================================
+   6. TELA DE FIM — ESTUDO DE CASO
+   ========================================================================= */
+
+function resultadoNarrativa(){
+  var avg = avgInd(S.ind);
+  if(avg >= 78) return "A empresa tornou-se referência nacional em moda responsável.";
+  if(avg >= 60) return "A empresa é hoje sólida e respeitada, com uma reputação construída aos poucos.";
+  if(avg >= 40) return "A empresa sobrevive, com altos e baixos, ainda buscando equilíbrio entre custo e propósito.";
+  return "A empresa atravessa uma fase muito difícil, e as escolhas de curto prazo cobraram seu preço.";
+}
+
+function showEnding(ending){
+  var titleEl = document.getElementById("end-title");
+  var textEl = document.getElementById("end-text");
+  titleEl.className = "";
+
+  if(ending.type === "negative"){
+    var e1 = NEGATIVE_ENDINGS[ending.key];
+    titleEl.textContent = e1.title; titleEl.classList.add("negative"); textEl.textContent = e1.text;
+  } else if(ending.type === "positive"){
+    var e2 = POSITIVE_ENDINGS[ending.key];
+    titleEl.textContent = e2.title; titleEl.classList.add("positive"); textEl.textContent = e2.text;
+  } else {
+    titleEl.textContent = SUPREME_ENDING.title; titleEl.classList.add("supreme"); textEl.textContent = SUPREME_ENDING.text;
+  }
+
+  document.getElementById("cs-empresa").textContent = "EMPRESA: " + S.companyName;
+
+  var indBox = document.getElementById("cs-final-ind");
+  indBox.innerHTML = "";
+  IND_KEYS.forEach(function(k){
+    indBox.appendChild(el("span","", IND_META[k].icon+" "+IND_META[k].label+": "+Math.round(S.ind[k])));
+  });
+
+  var decList = document.getElementById("cs-decisoes");
+  decList.innerHTML = "";
+  if(S.goodChoices.length===0) decList.appendChild(el("li","","Nenhuma decisão de destaque registrada."));
+  else S.goodChoices.forEach(function(t){ decList.appendChild(el("li","","✓ "+t)); });
+
+  var conseqList = document.getElementById("cs-consequencias");
+  conseqList.innerHTML = "";
+  if(S.positiveEvents.length===0) conseqList.appendChild(el("li","","Nenhuma consequência de destaque observada ainda."));
+  else S.positiveEvents.forEach(function(t){ conseqList.appendChild(el("li","","✓ "+t)); });
+
+  var marketBox = document.getElementById("cs-market");
+  marketBox.innerHTML = "";
+  marketRanking().forEach(function(row, idx){
+    marketBox.appendChild(el("div","", "<span>"+(idx+1)+"º "+row.name+"</span><span>"+row.pct.toFixed(1)+"%</span>"));
+  });
+  document.getElementById("end-text").textContent += " " + resultadoNarrativa();
+
+  document.getElementById("end-years").textContent = S.year - 1;
+  document.getElementById("end-decisions").textContent = S.decisions;
+  document.getElementById("end-ach").textContent = Object.keys(S.unlocked).length;
+
+  document.getElementById("screen-end").classList.remove("hidden");
+}
+
+/* =========================================================================
+   7. CICLO DE VIDA / EVENTOS DE UI
+   ========================================================================= */
+
+document.getElementById("btn-start").addEventListener("click", function(){
+  document.getElementById("screen-start").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+  startGame();
+});
+
+document.getElementById("btn-restart").addEventListener("click", function(){
+  S = freshState();
+  document.getElementById("screen-end").classList.add("hidden");
+  document.getElementById("app").style.display = "flex";
+  startGame();
+});
+
+document.getElementById("btn-accept").addEventListener("click", function(){
+  var c = stage.querySelector(".card");
+  if(c && c._programDecide) c._programDecide("accept");
+});
+document.getElementById("btn-reject").addEventListener("click", function(){
+  var c = stage.querySelector(".card");
+  if(c && c._programDecide) c._programDecide("reject");
+});
+
+document.addEventListener("keydown", function(e){
+  if(document.getElementById("app").style.display === "none") return;
+  if(e.key === "ArrowRight") document.getElementById("btn-accept").click();
+  if(e.key === "ArrowLeft") document.getElementById("btn-reject").click();
+});
+
+var backdrop = document.getElementById("drawer-backdrop");
+var drawerHistory = document.getElementById("drawer-history");
+var drawerAch = document.getElementById("drawer-achievements");
+var drawerMarket = document.getElementById("drawer-market");
+
+function openDrawer(drawer){ backdrop.classList.add("open"); drawer.classList.add("open"); }
+function closeDrawers(){ backdrop.classList.remove("open"); drawerHistory.classList.remove("open"); drawerAch.classList.remove("open"); drawerMarket.classList.remove("open"); }
+
+document.getElementById("btn-history").addEventListener("click", function(){ renderHistoryList(); openDrawer(drawerHistory); });
+document.getElementById("btn-achievements").addEventListener("click", function(){ renderAchievementsList(); openDrawer(drawerAch); });
+document.getElementById("btn-market").addEventListener("click", function(){ renderMarketList(); openDrawer(drawerMarket); });
+backdrop.addEventListener("click", closeDrawers);
+document.querySelectorAll("[data-close-drawer]").forEach(function(b){ b.addEventListener("click", closeDrawers); });
+
+function startGame(){
+  brandNameEl.textContent = S.companyName;
+  buildGauges();
+  renderHistoryList();
+  loadNextCard();
+}
+
+})();
+</script>
+</body>
+</html>
